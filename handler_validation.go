@@ -1,22 +1,30 @@
 package main
 
-
 import (
 	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/deltron-fr/chirpy/internal/database"
+	"github.com/google/uuid"
 )
 
 
-func handlerValidateChrips(w http.ResponseWriter, req *http.Request) {
+func (cfg *apiConfig) handlerCreateChirps(w http.ResponseWriter, req *http.Request) {
 	
 	type parameters struct {
 		Body string `json:"body"`
+		UserID uuid.UUID `json:"user_id"`
 	}
 
 	type returnValid struct {
-		CleanedBody string `json:"cleaned_body"`
+		ID uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		CleanedBody string `json:"body"`
+		UserID uuid.UUID `json:"user_id"`
 	}
 
 	decoder := json.NewDecoder(req.Body)
@@ -29,38 +37,40 @@ func handlerValidateChrips(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	chirp := strings.TrimSpace(params.Body)
+	trimmedChirp := strings.TrimSpace(params.Body)
 
-	if len(chirp) > 140 {
+	if len(trimmedChirp) > 140 {
 		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
 		return
 	}
 
 	cleanedMsg := checkBadWords(params.Body)
-	resBody := returnValid{
-		CleanedBody: cleanedMsg,
-	}
-
-	respondWithJSON(w, http.StatusOK, resBody)
-}
-
-func respondWithError(w http.ResponseWriter, code int, msg string) {
-    respondWithJSON(w, code, map[string]string{"error": msg})
-}
-
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(code)
-
-	data, err := json.Marshal(payload)
+	user, err := cfg.db.GetUser(req.Context(), params.UserID)
 	if err != nil {
-		log.Printf("Error marshalling JSON: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"Internal Server Error"}`))
+		log.Printf("Error getting user: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "error getting user")
 		return
 	}
 
-	w.Write(data)
+	chirp, err := cfg.db.CreateChirp(req.Context(), database.CreateChirpParams{
+		Body: cleanedMsg,
+		UserID: user.ID,
+	})
+	if err != nil {
+		log.Printf("Error creating chirp: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "error creating chirp")
+		return
+	}
+
+	dataJson := returnValid{
+		ID: chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		CleanedBody: chirp.Body,
+		UserID: chirp.UserID,
+	}
+
+	respondWithJSON(w, http.StatusCreated, dataJson)
 }
 
 func checkBadWords(message string) string {

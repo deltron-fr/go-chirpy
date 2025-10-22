@@ -1,14 +1,11 @@
 package main
 
 import (
-	"net/http"
 	"fmt"
-	"sync/atomic"
+	"log"
+	"net/http"
 )
 
-type apiConfig struct {
-	fileserverHits atomic.Int32
-}
 
 func (cfg *apiConfig) handlerServerHits(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -20,8 +17,19 @@ func (cfg *apiConfig) handlerServerHits(w http.ResponseWriter, req *http.Request
 }
 
 func (cfg *apiConfig) handlerResetHits(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	if cfg.platform != "dev" {
+		respondWithError(w, http.StatusForbidden, "unauthorized to perform this operation")
+		return 
+	}
 
+	err := cfg.db.DeleteUser(req.Context())
+	if err != nil {
+		log.Printf("error deleting users: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "error deleting users")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 	cfg.fileserverHits.Swap(0)
 }
 
