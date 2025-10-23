@@ -15,6 +15,7 @@ import (
 type apiConfig struct {
 	db *database.Queries
 	platform string
+	secretKey string
 	fileserverHits atomic.Int32
 }
 
@@ -25,6 +26,7 @@ func main() {
 
 	pltform := os.Getenv("PLATFORM")
 	dbURL := os.Getenv("DB_URL")
+	secretKey := os.Getenv("SECRET_KEY")
 	
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -35,7 +37,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	serverHandler := http.StripPrefix("/app/", http.FileServer(http.Dir(".")))
-	apiCfg := apiConfig{db: dbQueries, platform: pltform, fileserverHits: atomic.Int32{}}
+	apiCfg := apiConfig{db: dbQueries, platform: pltform, secretKey: secretKey, fileserverHits: atomic.Int32{}}
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(serverHandler))
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
@@ -45,6 +47,7 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirps)
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirp)
+	mux.HandleFunc("POST /api/login", apiCfg.handlerLoginUsers)
 
 	server := &http.Server{
 		Addr:    ":" + port,

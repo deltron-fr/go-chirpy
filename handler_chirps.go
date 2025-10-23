@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/deltron-fr/chirpy/internal/auth"
 	"github.com/deltron-fr/chirpy/internal/database"
 	"github.com/google/uuid"
 )
@@ -17,7 +18,6 @@ func (cfg *apiConfig) handlerCreateChirps(w http.ResponseWriter, req *http.Reque
 	
 	type parameters struct {
 		Body string `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
 	}
 
 	type returnValid struct {
@@ -26,6 +26,20 @@ func (cfg *apiConfig) handlerCreateChirps(w http.ResponseWriter, req *http.Reque
 		UpdatedAt time.Time `json:"updated_at"`
 		CleanedBody string `json:"body"`
 		UserID uuid.UUID `json:"user_id"`
+	}
+
+	token, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		log.Printf("Error getting token: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "error getting token")
+		return
+	}
+
+	userID, err := auth.ValidateJWT(token, cfg.secretKey)
+	if err != nil {
+		log.Printf("Error validating token: %s", err)
+		respondWithError(w, http.StatusUnauthorized, "error validating token")
+		return
 	}
 
 	decoder := json.NewDecoder(req.Body)
@@ -39,23 +53,16 @@ func (cfg *apiConfig) handlerCreateChirps(w http.ResponseWriter, req *http.Reque
 	}
 
 	trimmedChirp := strings.TrimSpace(params.Body)
-
 	if len(trimmedChirp) > 140 {
 		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
 		return
 	}
 
 	cleanedMsg := checkBadWords(params.Body)
-	user, err := cfg.db.GetUser(req.Context(), params.UserID)
-	if err != nil {
-		log.Printf("Error getting user: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "error getting user")
-		return
-	}
 
 	chirp, err := cfg.db.CreateChirp(req.Context(), database.CreateChirpParams{
 		Body: cleanedMsg,
-		UserID: user.ID,
+		UserID: userID,
 	})
 	if err != nil {
 		log.Printf("Error creating chirp: %s", err)
