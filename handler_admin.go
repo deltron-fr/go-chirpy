@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-
 func (cfg *apiConfig) handlerServerHits(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
@@ -19,7 +18,7 @@ func (cfg *apiConfig) handlerServerHits(w http.ResponseWriter, req *http.Request
 func (cfg *apiConfig) handlerResetHits(w http.ResponseWriter, req *http.Request) {
 	if cfg.platform != "dev" {
 		respondWithError(w, http.StatusForbidden, "unauthorized to perform this operation")
-		return 
+		return
 	}
 
 	err := cfg.db.DeleteUser(req.Context())
@@ -32,7 +31,6 @@ func (cfg *apiConfig) handlerResetHits(w http.ResponseWriter, req *http.Request)
 	w.WriteHeader(http.StatusOK)
 	cfg.fileserverHits.Swap(0)
 }
-
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

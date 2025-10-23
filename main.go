@@ -13,10 +13,10 @@ import (
 )
 
 type apiConfig struct {
-	db *database.Queries
-	platform string
-	secretKey string
-	polkaKey string
+	db             *database.Queries
+	platform       string
+	secretKey      string
+	polkaKey       string
 	fileserverHits atomic.Int32
 }
 
@@ -39,7 +39,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	serverHandler := http.StripPrefix("/app/", http.FileServer(http.Dir(".")))
-	apiCfg := apiConfig{db: dbQueries, platform: pltform, secretKey: secretKey,polkaKey: polkaKey, fileserverHits: atomic.Int32{}}
+	apiCfg := apiConfig{db: dbQueries, platform: pltform, secretKey: secretKey, polkaKey: polkaKey, fileserverHits: atomic.Int32{}}
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(serverHandler))
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
@@ -71,4 +71,3 @@ func handlerReadiness(w http.ResponseWriter, req *http.Request) {
 
 	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
-

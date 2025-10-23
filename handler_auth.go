@@ -8,7 +8,6 @@ import (
 	"github.com/deltron-fr/chirpy/internal/auth"
 )
 
-
 func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, req *http.Request) {
 
 	token, err := auth.GetBearerToken(req.Header)
@@ -25,7 +24,7 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	JWTToken, err := auth.MakeJWT(refreshToken.UserID, cfg.secretKey, 60 * time.Minute)
+	JWTToken, err := auth.MakeJWT(refreshToken.UserID, cfg.secretKey, 60*time.Minute)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "error creating token")
 		return

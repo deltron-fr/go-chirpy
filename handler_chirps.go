@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"sort"
 	"net/http"
 	"strings"
 	"time"
@@ -13,19 +14,18 @@ import (
 	"github.com/google/uuid"
 )
 
-
 func (cfg *apiConfig) handlerCreateChirps(w http.ResponseWriter, req *http.Request) {
-	
+
 	type parameters struct {
 		Body string `json:"body"`
 	}
 
 	type returnValid struct {
-		ID uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		CleanedBody string `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		ID          uuid.UUID `json:"id"`
+		CreatedAt   time.Time `json:"created_at"`
+		UpdatedAt   time.Time `json:"updated_at"`
+		CleanedBody string    `json:"body"`
+		UserID      uuid.UUID `json:"user_id"`
 	}
 
 	token, err := auth.GetBearerToken(req.Header)
@@ -61,7 +61,7 @@ func (cfg *apiConfig) handlerCreateChirps(w http.ResponseWriter, req *http.Reque
 	cleanedMsg := checkBadWords(params.Body)
 
 	chirp, err := cfg.db.CreateChirp(req.Context(), database.CreateChirpParams{
-		Body: cleanedMsg,
+		Body:   cleanedMsg,
 		UserID: userID,
 	})
 	if err != nil {
@@ -71,60 +71,91 @@ func (cfg *apiConfig) handlerCreateChirps(w http.ResponseWriter, req *http.Reque
 	}
 
 	dataJson := returnValid{
-		ID: chirp.ID,
-		CreatedAt: chirp.CreatedAt,
-		UpdatedAt: chirp.UpdatedAt,
+		ID:          chirp.ID,
+		CreatedAt:   chirp.CreatedAt,
+		UpdatedAt:   chirp.UpdatedAt,
 		CleanedBody: chirp.Body,
-		UserID: chirp.UserID,
+		UserID:      chirp.UserID,
 	}
 
 	respondWithJSON(w, http.StatusCreated, dataJson)
 }
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, req *http.Request) {
-	
+
 	type Chirp struct {
-		ID uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		CleanedBody string `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		ID          uuid.UUID `json:"id"`
+		CreatedAt   time.Time `json:"created_at"`
+		UpdatedAt   time.Time `json:"updated_at"`
+		CleanedBody string    `json:"body"`
+		UserID      uuid.UUID `json:"user_id"`
 	}
 
-	s := req.URL.Query().Get("author_id")
-	if s == "" {
-		
+
+	author := req.URL.Query().Get("author_id")
+	s := req.URL.Query().Get("sort")
+
+	var chirps []database.Chirp
+
+	if author != "" {
+		authorID, err := uuid.Parse(author)
+		if err != nil {
+			log.Printf("error parsing uuid: err %v", err)
+			respondWithError(w, http.StatusBadRequest, "invalid author id")
+			return
+		}
+
+		chirps, err = cfg.db.GetChirpsByAuthor(req.Context(), authorID)
+		if err != nil {
+			log.Printf("error getting chirps: %s", err)
+			respondWithError(w, http.StatusInternalServerError, "error getting chirps")
+			return
+		}
+	} else {
+		var err error
+		chirps, err = cfg.db.GetChirps(req.Context())
+		if err != nil {
+			log.Printf("error getting chirps: %s", err)
+			respondWithError(w, http.StatusInternalServerError, "error getting chirps")
+			return
+		}
 	}
 
-	chirps, err := cfg.db.GetChirps(req.Context())
-	if err != nil {
-		log.Printf("error getting chirps: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "error getting chirps")
-		return
-	}
-
-	newChirps := make([]Chirp, len(chirps))	
+	newChirps := make([]Chirp, len(chirps))
 
 	for i, chirp := range chirps {
 		newChirps[i] = Chirp{
-			ID: chirp.ID,
-			CreatedAt: chirp.CreatedAt,
-			UpdatedAt: chirp.UpdatedAt,
+			ID:          chirp.ID,
+			CreatedAt:   chirp.CreatedAt,
+			UpdatedAt:   chirp.UpdatedAt,
 			CleanedBody: chirp.Body,
-			UserID: chirp.UserID,
-			}
+			UserID:      chirp.UserID,
+		}
 	}
 
+	switch s {
+	case "asc":
+		sort.Slice(newChirps, func(i, j int) bool {
+			return newChirps[i].CreatedAt.Before(newChirps[j].CreatedAt)
+		})
+	default:
+		sort.Slice(newChirps, func(i, j int) bool {
+			return newChirps[i].CreatedAt.After(newChirps[j].CreatedAt)
+		})
+	}
+
+
 	respondWithJSON(w, http.StatusOK, newChirps)
+	
 }
 
 func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, req *http.Request) {
 	type Chirp struct {
-		ID uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		CleanedBody string `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		ID          uuid.UUID `json:"id"`
+		CreatedAt   time.Time `json:"created_at"`
+		UpdatedAt   time.Time `json:"updated_at"`
+		CleanedBody string    `json:"body"`
+		UserID      uuid.UUID `json:"user_id"`
 	}
 
 	chirpID, err := uuid.Parse(req.PathValue("chirpID"))
@@ -142,11 +173,11 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, req *http.Request) 
 	}
 
 	chirpJson := Chirp{
-		ID: chirp.ID,
-		CreatedAt: chirp.CreatedAt,
-		UpdatedAt: chirp.UpdatedAt,
+		ID:          chirp.ID,
+		CreatedAt:   chirp.CreatedAt,
+		UpdatedAt:   chirp.UpdatedAt,
 		CleanedBody: chirp.Body,
-		UserID: chirp.UserID,
+		UserID:      chirp.UserID,
 	}
 
 	respondWithJSON(w, http.StatusOK, chirpJson)
@@ -207,7 +238,7 @@ func checkBadWords(message string) string {
 			words[i] = "****"
 		}
 	}
-	
+
 	cleanedMessage := strings.Join(words, " ")
 	return cleanedMessage
 

@@ -2,18 +2,17 @@ package main
 
 import (
 	"encoding/json"
-	"net/http"
 	"log"
+	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/deltron-fr/chirpy/internal/auth"
+	"github.com/google/uuid"
 )
-
 
 func (cfg *apiConfig) handlerUpgradeUser(w http.ResponseWriter, req *http.Request) {
 	type parameters struct {
 		Event string `json:"event"`
-		Data struct {
+		Data  struct {
 			UserID uuid.UUID `json:"user_id"`
 		} `json:"data"`
 	}
@@ -61,4 +60,3 @@ func (cfg *apiConfig) handlerUpgradeUser(w http.ResponseWriter, req *http.Reques
 
 	w.WriteHeader(http.StatusNoContent)
 }
-

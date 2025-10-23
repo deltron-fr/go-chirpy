@@ -30,5 +30,5 @@ WHERE id = $1;
 
 SELECT *
 FROM chirps
-WHERE id = user_id
+WHERE $1 = user_id
 ORDER BY created_at;

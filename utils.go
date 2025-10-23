@@ -1,14 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
-	"encoding/json"
 )
 
-
 func respondWithError(w http.ResponseWriter, code int, msg string) {
-    respondWithJSON(w, code, map[string]string{"error": msg})
+	respondWithJSON(w, code, map[string]string{"error": msg})
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
