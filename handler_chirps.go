@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -72,6 +73,72 @@ func (cfg *apiConfig) handlerCreateChirps(w http.ResponseWriter, req *http.Reque
 
 	respondWithJSON(w, http.StatusCreated, dataJson)
 }
+
+func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, req *http.Request) {
+	
+	type Chirp struct {
+		ID uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		CleanedBody string `json:"body"`
+		UserID uuid.UUID `json:"user_id"`
+	}
+
+	chirps, err := cfg.db.GetChirps(req.Context())
+	if err != nil {
+		log.Printf("error getting chirps: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "error getting chirps")
+		return
+	}
+
+	newChirps := make([]Chirp, len(chirps))	
+
+	for i, chirp := range chirps {
+		newChirps[i] = Chirp{
+			ID: chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			CleanedBody: chirp.Body,
+			UserID: chirp.UserID,
+			}
+	}
+
+	respondWithJSON(w, http.StatusOK, newChirps)
+}
+
+func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, req *http.Request) {
+	type Chirp struct {
+		ID uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		CleanedBody string `json:"body"`
+		UserID uuid.UUID `json:"user_id"`
+	}
+
+	chirpID, err := uuid.Parse(req.PathValue("chirpID"))
+	if err != nil {
+		log.Printf("error converting uuid: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "error converting id")
+		return
+	}
+
+	chirp, err := cfg.db.GetChirp(context.Background(), chirpID)
+	if err != nil {
+		log.Printf("error getting chirp: %s", err)
+		respondWithError(w, http.StatusNotFound, "chirp does not exist")
+	}
+
+	chirpJson := Chirp{
+		ID: chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		CleanedBody: chirp.Body,
+		UserID: chirp.UserID,
+	}
+
+	respondWithJSON(w, http.StatusOK, chirpJson)
+}
+
 
 func checkBadWords(message string) string {
 	m := make(map[string]bool)
