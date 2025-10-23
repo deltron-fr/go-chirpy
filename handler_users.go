@@ -59,7 +59,7 @@ func (cfg *apiConfig) handlerCreateUsers(w http.ResponseWriter, req *http.Reques
 		Email: user.Email,
 	}
 
-	respondWithJSON(w, http.StatusOK, userJson)
+	respondWithJSON(w, http.StatusCreated, userJson)
 }
 
 
@@ -146,49 +146,70 @@ func (cfg *apiConfig) handlerLoginUsers(w http.ResponseWriter, req *http.Request
 }
 
 
-func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, req *http.Request) {
-
-	token, err := auth.GetBearerToken(req.Header)
+func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, req *http.Request) {
+	jwtToken, err := auth.GetBearerToken(req.Header)
 	if err != nil {
 		log.Printf("Error getting token: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "error getting token")
+		respondWithError(w, http.StatusUnauthorized, "error getting token")
 		return
 	}
 
-	refreshToken, err := cfg.db.GetRefreshToken(req.Context(), token)
+	userID, err := auth.ValidateJWT(jwtToken, cfg.secretKey)
 	if err != nil {
-		log.Printf("Error fetching token: %v", err)
-		respondWithError(w, http.StatusUnauthorized, "token does not exist or is expired")
+		log.Printf("Error validating token: %s", err)
+		respondWithError(w, http.StatusUnauthorized, "error validating token")
 		return
 	}
 
-	JWTToken, err := auth.MakeJWT(refreshToken.UserID, cfg.secretKey, 60 * time.Minute)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "error creating token")
-		return
+	type parameters struct {
+		Password string `json:"password"`
+		Email string `json:"email"`
 	}
 
-	type refresh struct {
+	type users struct {
+		ID uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Email string `json:"email"`
 		Token string `json:"token"`
 	}
 
-	respondWithJSON(w, http.StatusOK, refresh{Token: JWTToken})
-}
 
-func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, req *http.Request) {
-	token, err := auth.GetBearerToken(req.Header)
-	if err != nil {
-		log.Printf("Error getting token: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "error getting token")
+	decoder := json.NewDecoder(req.Body)
+	decoder.DisallowUnknownFields()
+
+	params := parameters{}
+	if err := decoder.Decode(&params); err != nil {
+		log.Printf("Error decoding parameters: %s", err)
+		respondWithError(w, http.StatusBadRequest, "error decoding json")
 		return
 	}
 
-	err = cfg.db.UpdateRevokedAt(req.Context(), token)
+	hashedPassword, err := auth.HashPassword(params.Password)
 	if err != nil {
-		log.Printf("Error updating revoked_at, err: %v", err)
-		respondWithError(w, http.StatusUnauthorized, "cannot perform this operation")
+		log.Printf("error hashing password: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "error hashing password")
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
 
+	user, err := cfg.db.UpdateUser(req.Context(), database.UpdateUserParams{
+		Email: params.Email,
+		HashedPassword: hashedPassword,
+		ID: userID,
+	})
+	if err != nil {
+		log.Printf("error updating user information, err: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "error updating user information")
+		return
+	}
+
+	userJson := users{
+		ID: user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email: user.Email,
+		Token: jwtToken,
+	}
+
+	respondWithJSON(w, http.StatusOK, userJson)
 }

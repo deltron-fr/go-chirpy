@@ -20,3 +20,8 @@ ORDER BY created_at;
 SELECT *
 FROM chirps
 WHERE $1 = id;
+
+-- name: DeleteChirp :execrows
+
+DELETE FROM chirps
+WHERE id = $1;

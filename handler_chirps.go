@@ -125,7 +125,7 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, req *http.Request) 
 	chirpID, err := uuid.Parse(req.PathValue("chirpID"))
 	if err != nil {
 		log.Printf("error converting uuid: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "error converting id")
+		respondWithError(w, http.StatusBadRequest, "error converting id")
 		return
 	}
 
@@ -133,6 +133,7 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, req *http.Request) 
 	if err != nil {
 		log.Printf("error getting chirp: %s", err)
 		respondWithError(w, http.StatusNotFound, "chirp does not exist")
+		return
 	}
 
 	chirpJson := Chirp{
@@ -146,6 +147,44 @@ func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, req *http.Request) 
 	respondWithJSON(w, http.StatusOK, chirpJson)
 }
 
+func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, req *http.Request) {
+
+	jwtToken, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		log.Printf("Error getting token: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "error getting token")
+		return
+	}
+
+	_, err = auth.ValidateJWT(jwtToken, cfg.secretKey)
+	if err != nil {
+		log.Printf("Error validating token: %s", err)
+		respondWithError(w, http.StatusForbidden, "error validating token")
+		return
+	}
+
+	chirpID, err := uuid.Parse(req.PathValue("chirpID"))
+	if err != nil {
+		log.Printf("error converting uuid: %s", err)
+		respondWithError(w, http.StatusBadRequest, "error converting id")
+		return
+	}
+
+	rows, err := cfg.db.DeleteChirp(req.Context(), chirpID)
+	if err != nil {
+		log.Print("Error deleting chirp")
+		respondWithError(w, http.StatusInternalServerError, "error deleting chirp")
+		return
+	}
+
+	if rows == 0 {
+		log.Printf("Error deleting chirp: %s", err)
+		respondWithError(w, http.StatusNotFound, "chirp not found")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
 
 func checkBadWords(message string) string {
 	m := make(map[string]bool)
