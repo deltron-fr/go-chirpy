@@ -25,3 +25,10 @@ WHERE $1 = id;
 
 DELETE FROM chirps
 WHERE id = $1;
+
+-- name: GetChirpsByAuthor :many
+
+SELECT *
+FROM chirps
+WHERE id = user_id
+ORDER BY created_at;

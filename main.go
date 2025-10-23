@@ -16,6 +16,7 @@ type apiConfig struct {
 	db *database.Queries
 	platform string
 	secretKey string
+	polkaKey string
 	fileserverHits atomic.Int32
 }
 
@@ -27,7 +28,8 @@ func main() {
 	pltform := os.Getenv("PLATFORM")
 	dbURL := os.Getenv("DB_URL")
 	secretKey := os.Getenv("SECRET_KEY")
-	
+	polkaKey := os.Getenv("POLKA_KEY")
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal(err)
@@ -37,7 +39,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	serverHandler := http.StripPrefix("/app/", http.FileServer(http.Dir(".")))
-	apiCfg := apiConfig{db: dbQueries, platform: pltform, secretKey: secretKey, fileserverHits: atomic.Int32{}}
+	apiCfg := apiConfig{db: dbQueries, platform: pltform, secretKey: secretKey,polkaKey: polkaKey, fileserverHits: atomic.Int32{}}
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(serverHandler))
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
@@ -51,6 +53,7 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
 	mux.HandleFunc("PUT /api/users", apiCfg.handlerUpdateUser)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerUpgradeUser)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerDeleteChirp)
 
 	server := &http.Server{

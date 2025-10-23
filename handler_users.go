@@ -23,6 +23,7 @@ func (cfg *apiConfig) handlerCreateUsers(w http.ResponseWriter, req *http.Reques
 		CreatedAt time.Time `json:"created_at"`
 		UpdatedAt time.Time `json:"updated_at"`
 		Email string `json:"email"`
+		IsChirpyRed bool `json:"is_chirpy_red"`
 	}
 
 	decoder := json.NewDecoder(req.Body)
@@ -57,6 +58,7 @@ func (cfg *apiConfig) handlerCreateUsers(w http.ResponseWriter, req *http.Reques
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email: user.Email,
+		IsChirpyRed: user.IsChirpyRed,
 	}
 
 	respondWithJSON(w, http.StatusCreated, userJson)
@@ -76,6 +78,7 @@ func (cfg *apiConfig) handlerLoginUsers(w http.ResponseWriter, req *http.Request
 		Email string `json:"email"`
 		Token string `json:"token"`
 		RefreshToken string `json:"refresh_token"`
+		IsChirpyRed bool `json:"is_chirpy_red"`
 	}
 
 	const ExpiresIn = 3600 * time.Second
@@ -140,6 +143,7 @@ func (cfg *apiConfig) handlerLoginUsers(w http.ResponseWriter, req *http.Request
 		Email: user.Email,
 		Token: token,
 		RefreshToken: refreshToken,
+		IsChirpyRed: user.IsChirpyRed,
 	}
 
 	respondWithJSON(w, http.StatusOK, userJson)
@@ -172,6 +176,7 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, req *http.Request
 		UpdatedAt time.Time `json:"updated_at"`
 		Email string `json:"email"`
 		Token string `json:"token"`
+		IsChirpyRed bool `json:"is_chirpy_red"`
 	}
 
 
@@ -209,6 +214,7 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, req *http.Request
 		UpdatedAt: user.UpdatedAt,
 		Email: user.Email,
 		Token: jwtToken,
+		IsChirpyRed: user.IsChirpyRed,
 	}
 
 	respondWithJSON(w, http.StatusOK, userJson)

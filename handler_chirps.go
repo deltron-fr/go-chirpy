@@ -91,6 +91,11 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, req *http.Request)
 		UserID uuid.UUID `json:"user_id"`
 	}
 
+	s := req.URL.Query().Get("author_id")
+	if s == "" {
+		
+	}
+
 	chirps, err := cfg.db.GetChirps(req.Context())
 	if err != nil {
 		log.Printf("error getting chirps: %s", err)
