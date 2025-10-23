@@ -13,6 +13,20 @@ INSERT INTO refresh_tokens (
             NOW(),
             $2,
             $3,
-            $4 
+            NULL
 )
 RETURNING *;
+
+
+-- name: GetRefreshToken :one
+
+SELECT *
+FROM refresh_tokens
+WHERE $1 = token;
+
+
+-- name: UpdateRevokedAt :exec
+
+UPDATE refresh_tokens
+SET revoked_at = NOW(), updated_at = NOW()
+WHERE $1 = token;
