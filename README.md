@@ -132,8 +132,8 @@ Common headers:
   Response: 200 chirp object
 
 - DELETE `/api/chirps/{chirpID}`
-  Headers: Authorization: Bearer <access_token>
-  Response: 204 on success
+    - Headers: Authorization: Bearer <access_token>
+    - Response: 204 on success
 
 5) Payments / Webhook
 - POST `/api/polka/webhooks`
