@@ -29,18 +29,18 @@ Chirpy is a compact backend application written in Go that demonstrates clean we
 
 ## Quickstart (local)
 1. Clone:
-```
-   git clone https://github.com/deltron-fr/go-chirpy.git
+    ```
+   git clone https://github.com/deltron-fr/chirpy.git
    cd chirpy
-```
+    ```
 
 2. Copy and edit .env (example values included in repo). Required vars:
    `DB_URL, PLATFORM, SECRET_KEY, POLKA_KEY`
 
 3. Create DB:
-```
+    ```
    createdb chirpy
-```
+    ```
 
 4. Run migrations (example using goose):
    ```
