@@ -2,18 +2,6 @@
 
 Chirpy is a compact backend application written in Go that demonstrates clean web API design, authentication with JWT + refresh tokens, database interaction via SQL (sqlc), and small but realistic features such as payment webhooks and admin metrics.
 
-Table of contents
-- [Features](#features)
-- [Project layout & architecture](#project-layout--architecture)
-- [Prerequisites](#prerequisites)
-- [Quickstart (local)](#quickstart-local)
-- [Environment variables](#environment-variables)
-- [Database: schema, queries & migrations](#database-schema-queries--migrations)
-- [API Reference (core)](#api-reference-core)
-- [Authentication & tokens](#authentication--tokens)
-- [Testing](#testing)
-
-
 ## Features
 - User registration, login, update
 - JWT access tokens + refresh tokens stored in DB
@@ -65,10 +53,10 @@ Table of contents
    ```
 
 6. Fetch deps and run:
-```
+    ```
    go mod tidy
    go run main.go
-```
+    ```
 
 By default server runs on :8080. Static files are available at /app/.
 
@@ -108,7 +96,7 @@ Common headers:
 
 - PUT `/api/users` — Update user
     - Headers: `Authorization: Bearer <token>`
-        Request:
+        - Request:
             `{ "email": "new@example.com", "password": "newpass" }`
     - Response: 200 updated user object (token is echoed)
 
@@ -141,7 +129,7 @@ Common headers:
     - Headers: `Authorization: Bearer <access_token>`
     - Response: `204` on success
 
-5) Payments / Webhook
+#### 5) Payments / Webhook
 - POST `/api/polka/webhooks`
   - Headers: `Authorization: Bearer <POLKA_KEY>`
   - Body:
@@ -151,19 +139,22 @@ Common headers:
     - `401` if API key missing/invalid
   - Notes: This endpoint calls UpgradeUser (sets is_chirpy_red=true)
 
-6) Admin
+#### 6) Admin
 - GET `/admin/metrics` — View request counter (HTML)
 - POST `/admin/reset` — Reset server metrics and, in dev only, delete users (platform must be "dev")
 
 ## Authentication & tokens
 - Access tokens: JWT (HS256) signed with SECRET_KEY. Short lived (handler uses 60m in places).
 - Refresh tokens: random hex token (32 bytes) stored in refresh_tokens table with expires_at and revoked_at. Exchange via /api/refresh.
-- Use Authorization: Bearer <token> for both access (JWT) and refresh token endpoints.
+- Use Authorization: `Bearer <token>` for both access (JWT) and refresh token endpoints.
 
 ## Testing
 - Unit tests exist for internal/auth package (jwt, password hashing, bearer parsing).
   Run:
+    ```
     go test ./...
+    ```
+
 - If you alter SQL queries, regenerate sqlc code and run tests again.
 
 
