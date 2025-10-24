@@ -1,21 +1,20 @@
-# 🐦 Chirpy — Minimal Twitter-Like REST API in Go 
+# Chirpy — Minimal Twitter-Like REST API in Go 
 
 Chirpy is a compact backend application written in Go that demonstrates clean web API design, authentication with JWT + refresh tokens, database interaction via SQL (sqlc), and small but realistic features such as payment webhooks and admin metrics.
 
 Table of contents
-- [Features](#features)
-- [Project layout & architecture](#project-layout--architecture)
-- [Prerequisites](#prerequisites)
-- [Quickstart (local)](#quickstart-local)
-- [Environment variables](#environment-variables)
-- [Database: schema, queries & migrations](#database-schema-queries--migrations)
-- [API Reference (core)](#api-reference-core)
-- [Authentication & tokens](#authentication--tokens)
-- [Testing](#testing)
+- [Features](##features)
+- [Project layout & architecture](##project-layout--architecture)
+- [Prerequisites](##prerequisites)
+- [Quickstart (local)](##quickstart-local)
+- [Environment variables](##environment-variables)
+- [Database: schema, queries & migrations](##database-schema-queries--migrations)
+- [API Reference (core)](##api-reference-core)
+- [Authentication & tokens](##authentication--tokens)
+- [Testing](##testing)
 
 
-
-Features
+## Features
 - User registration, login, update
 - JWT access tokens + refresh tokens stored in DB
 - Chirp CRUD: create, read, delete; simple profanity filter
@@ -23,7 +22,7 @@ Features
 - Simulated payment webhook to upgrade users
 - Request counting middleware
 
-Project layout & architecture
+## Project layout & architecture
 - main.go — app entrypoint and route registration
 - handler_*.go — grouped HTTP handlers (auth, users, chirps, admin, payments)
 - utils.go — JSON responses & error helpers
@@ -33,14 +32,14 @@ Project layout & architecture
 - index.html — simple static file served under /app/
 - .env — local environment config
 
-Prerequisites
+## Prerequisites
 - Go 1.24+
 - PostgreSQL with pgcrypto extension (gen_random_uuid)
 - sqlc (for generating internal/database types if you change queries)
 - goose (or your chosen migration tool) for running migrations
 - git
 
-Quickstart (local)
+## Quickstart (local)
 1. Clone:
    git clone https://github.com/yourusername/chirpy.git
    cd chirpy
@@ -63,13 +62,13 @@ Quickstart (local)
 
 By default server runs on :8080. Static files are available at /app/.
 
-Environment variables
+## Environment variables
 - DB_URL — Postgres connection string, e.g. postgres://postgres:postgres@localhost:5432/chirpy?sslmode=disable
 - PLATFORM — "dev" or "prod" (admin reset is restricted to dev)
 - SECRET_KEY — secret used to sign JWT access tokens
 - POLKA_KEY — API key expected by payment webhook endpoint
 
-Database: schema, queries & migrations
+## Database: schema, queries & migrations
 - sql/schema/*.sql — Goose migrations; run them in order. Key migrations:
   - users table changes (hashed_password, is_chirpy_red)
   - chirps table with FK to users
@@ -77,7 +76,7 @@ Database: schema, queries & migrations
 - sql/queries/*.sql — sqlc queries for DB operations (CreateUser, GetUser, CreateChirp, GetChirps, CreateRefreshToken, GetRefreshToken, UpdateRevokedAt, UpgradeUser, etc.)
 - The repository uses gen_random_uuid() so ensure pgcrypto is enabled in your DB (CREATE EXTENSION IF NOT EXISTS pgcrypto;)
 
-API Reference (core)
+## API Reference (core)
 Common headers:
 - Content-Type: application/json
 - Authorization: Bearer <access_token> (for protected endpoints)
@@ -146,12 +145,12 @@ Common headers:
 - GET /admin/metrics — View request counter (HTML)
 - POST /admin/reset — Reset server metrics and, in dev only, delete users (platform must be "dev")
 
-Authentication & tokens
+## Authentication & tokens
 - Access tokens: JWT (HS256) signed with SECRET_KEY. Short lived (handler uses 60m in places).
 - Refresh tokens: random hex token (32 bytes) stored in refresh_tokens table with expires_at and revoked_at. Exchange via /api/refresh.
 - Use Authorization: Bearer <token> for both access (JWT) and refresh token endpoints.
 
-Testing
+## Testing
 - Unit tests exist for internal/auth package (jwt, password hashing, bearer parsing).
   Run:
     go test ./...
